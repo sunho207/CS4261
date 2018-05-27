@@ -20,7 +20,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="100dp"
-            android:layout_marginTop="50dp"
+            android:layout_marginTop="100dp"
             android:contentDescription="@string/desc_firebase_lockup"
             android:src="@drawable/firebase_lockup_400" />
 
