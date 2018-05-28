@@ -1,9 +1,16 @@
 package com.example.sunho207.cs4261;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
+import android.location.Location;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -15,15 +22,24 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
-    // [START declare_auth]
     private FirebaseAuth mAuth;
-    // [END declare_auth]
+    private FusedLocationProviderClient mFusedLocationClient;
+    private static final int MY_PERMISSION_ACCESS_COARSE_LOCATION = 11;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,8 +53,10 @@ public class MainActivity extends AppCompatActivity
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                FirebaseDatabase database = FirebaseDatabase.getInstance();
+                DatabaseReference myRef = database.getReference("cs4261-e6b2a");
+
+                myRef.setValue("Hello, World!");
             }
         });
 
@@ -51,9 +69,8 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        // [START initialize_auth]
         mAuth = FirebaseAuth.getInstance();
-        // [END initialize_auth]
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
     }
 
     @Override
@@ -61,6 +78,32 @@ public class MainActivity extends AppCompatActivity
         super.onStart();
         FirebaseUser currentUser = mAuth.getCurrentUser();
         updateUI(currentUser);
+        if ( ContextCompat.checkSelfPermission( this, android.Manifest.permission.ACCESS_COARSE_LOCATION ) != PackageManager.PERMISSION_GRANTED ) {
+            ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                MY_PERMISSION_ACCESS_COARSE_LOCATION);
+        }
+        mFusedLocationClient.getLastLocation()
+            .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                @Override
+                public void onSuccess(Location location) {
+                    if (location != null) {
+                        Geocoder gcd = new Geocoder(MainActivity.this, Locale.getDefault());
+                        try {
+                            List<Address> addresses = gcd.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+                            if (addresses.size() > 0) {
+                                String cityState = addresses.get(0).getLocality() + ", " + addresses.get(0).getAdminArea();
+                                NavigationView navigationView = findViewById(R.id.nav_view);
+                                View header = navigationView.getHeaderView(0);
+                                TextView navSubtitle = header.findViewById(R.id.nav_header_subtitle);
+                                navSubtitle.setText(cityState);
+                            }
+                        } catch(IOException e) {
+                            Log.d("Exception", e.toString());
+                        }
+                    }
+                }
+            });
     }
 
     @Override
@@ -80,6 +123,13 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
+    private void addMessage() {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference("message");
+
+        myRef.setValue("Hello, World!");
+    }
+
     private void signOut() {
         mAuth.signOut();
         updateUI(null);
@@ -89,8 +139,8 @@ public class MainActivity extends AppCompatActivity
         if (user != null) {
             NavigationView navigationView = findViewById(R.id.nav_view);
             View header = navigationView.getHeaderView(0);
-            TextView navigationTitle = header.findViewById(R.id.nav_header_title);
-            navigationTitle.setText("Welcome " + user.getEmail() + "!");
+            TextView navTitle = header.findViewById(R.id.nav_header_title);
+            navTitle.setText(user.getEmail());
         } else {
             Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
