@@ -21,6 +21,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -55,8 +56,13 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View view) {
                 FirebaseDatabase database = FirebaseDatabase.getInstance();
                 DatabaseReference myRef = database.getReference("cs4261-e6b2a");
-
-                myRef.setValue("Hello, World!");
+                FirebaseUser currentUser = mAuth.getCurrentUser();
+                if (currentUser != null) {
+                    myRef.setValue("request email to " + currentUser.getEmail());
+                    Toast.makeText(getApplicationContext(),"Request sent successfully.",Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(getApplicationContext(),"Request failed to be sent.",Toast.LENGTH_LONG).show();
+                }
             }
         });
 
